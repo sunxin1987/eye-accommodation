@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>人眼成像调节模拟</title>
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
+
+      :root {
+        --bg: #edf0f3;
+        --panel: #ffffff;
+        --panel-2: #f4f7f9;
+        --ink: #1a2530;
+        --muted: #5b6b7a;
+        --line: #d3dce3;
+        --accent: #0f766e;
+        --accent-ink: #ffffff;
+        --amber: #d97706;
+        --ray: #e07b1f;
+        --good: #178a4c;
+        --mid: #b97a0e;
+        --bad: #cf3527;
+        --vitreous: #f2f7f5;
+        --sclera-stroke: #33424f;
+        --lens-fill: rgba(140, 205, 225, 0.5);
+        --lens-stroke: #3d7f96;
+        --retina: #b3402a;
+        --iris: #4a3421;
+        --stage-bg: #fbfcfd;
+        --chip-bg: #eef3f5;
+        --shadow: 0 10px 30px rgba(23, 38, 54, 0.08);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c1218;
+          --panel: #141f29;
+          --panel-2: #182633;
+          --ink: #e5edf3;
+          --muted: #94a7b8;
+          --line: #27394a;
+          --accent: #2aa79b;
+          --accent-ink: #06231f;
+          --amber: #e8a13c;
+          --ray: #f0922e;
+          --good: #3cb371;
+          --mid: #e0a93e;
+          --bad: #f0685c;
+          --vitreous: #16222d;
+          --sclera-stroke: #8fa9bc;
+          --lens-fill: rgba(110, 180, 205, 0.35);
+          --lens-stroke: #7cc0d6;
+          --retina: #e0684e;
+          --iris: #a97c50;
+          --stage-bg: #101922;
+          --chip-bg: #1a2937;
+          --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; }
+
+      header.page-head { margin: 4px 0 16px; }
+      header.page-head h1 {
+        font-family: "Noto Serif SC", "Noto Sans SC", serif;
+        font-weight: 900;
+        font-size: clamp(26px, 4.5vw, 38px);
+        margin: 0 0 6px;
+        letter-spacing: 0.02em;
+      }
+      header.page-head p { margin: 0; color: var(--muted); font-size: 15px; max-width: 46em; }
+      header.page-head p strong { color: var(--ink); }
+
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 348px; gap: 16px; align-items: start; }
+      @media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+      .stage-card { padding: 10px 10px 4px; overflow: hidden; }
+      .stage-card svg { display: block; width: 100%; height: auto; }
+      .stage-note { color: var(--muted); font-size: 12.5px; padding: 2px 6px 8px; }
+
+      aside.panel { display: flex; flex-direction: column; gap: 16px; }
+      .sec { padding: 14px 16px 16px; }
+      .sec h2 {
+        font-size: 13px; font-weight: 700; color: var(--muted);
+        letter-spacing: 0.14em; margin: 0 0 10px;
+      }
+      .sec h2 .step {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 20px; height: 20px; border-radius: 50%;
+        background: var(--accent); color: var(--accent-ink);
+        font-size: 12px; letter-spacing: 0; margin-right: 7px; vertical-align: -4px;
+      }
+
+      .slider-row { display: flex; align-items: baseline; gap: 10px; }
+      .slider-row .val { font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .slider-row .val small { font-weight: 500; color: var(--muted); font-size: 12px; }
+      input[type="range"] { width: 100%; accent-color: var(--accent); height: 36px; cursor: pointer; }
+      .scale-marks { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; margin-top: -4px; }
+
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+      .chip {
+        border: 1px solid var(--line); background: var(--chip-bg); color: var(--ink);
+        border-radius: 999px; padding: 6px 13px; font-size: 13.5px; cursor: pointer;
+        font-family: inherit; min-height: 36px;
+      }
+      .chip:hover { border-color: var(--accent); }
+      .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+
+      .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+      .seg button {
+        flex: 1 1 auto; border: 1px solid var(--line); background: var(--chip-bg); color: var(--ink);
+        border-radius: 10px; padding: 7px 10px; font-size: 14px; cursor: pointer; font-family: inherit;
+        min-height: 38px; white-space: nowrap;
+      }
+      .seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+      .seg button:disabled { opacity: 0.45; cursor: not-allowed; }
+      .hint { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+
+      .toggle-btn {
+        width: 100%; border: 1px solid var(--line); background: var(--chip-bg); color: var(--ink);
+        border-radius: 10px; padding: 8px 12px; font-size: 14.5px; cursor: pointer; font-family: inherit;
+        min-height: 40px; font-weight: 500;
+      }
+      .toggle-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+      .toggle-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      .demo-btn { margin-top: 10px; }
+
+      .verdict { display: flex; align-items: center; gap: 12px; }
+      .verdict .dot { width: 16px; height: 16px; border-radius: 50%; flex: none; background: var(--good); box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 0%, transparent); }
+      .verdict .big { font-size: 21px; font-weight: 900; }
+      .verdict .sub { color: var(--muted); font-size: 13px; }
+      .verdict.ok { color: var(--good); }
+      .verdict.mid { color: var(--mid); }
+      .verdict.bad { color: var(--bad); }
+      .verdict .txt { color: var(--ink); }
+      .verdict .txt .sub { display: block; }
+      .explain { margin: 10px 0 0; font-size: 14px; background: var(--panel-2); border-radius: 10px; padding: 10px 12px; }
+
+      dl.data { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 0; font-size: 14px; }
+      dl.data dt { color: var(--muted); white-space: nowrap; }
+      dl.data dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+      dl.data dd b { font-weight: 700; }
+
+      .effort { margin-top: 12px; }
+      .effort .lab { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+      .effort .bar { height: 9px; border-radius: 99px; background: var(--chip-bg); overflow: hidden; }
+      .effort .fill { height: 100%; width: 0%; background: var(--amber); border-radius: 99px; transition: width 0.12s linear; }
+
+      .formula {
+        font-family: "Noto Serif SC", serif; font-size: 17px; text-align: center;
+        background: var(--panel-2); border-radius: 10px; padding: 10px 8px; margin-top: 4px;
+        font-variant-numeric: tabular-nums;
+      }
+      .frac { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; margin: 0 2px; line-height: 1.15; }
+      .frac > span:first-child { border-bottom: 1.6px solid currentColor; padding: 0 5px; }
+      .frac > span:last-child { padding: 0 5px; }
+      .formula .unit { font-family: "Noto Sans SC", sans-serif; font-size: 12px; color: var(--muted); }
+
+      .retina-view { background: #0e151d; border-radius: 10px; padding: 8px; }
+      .retina-view svg { display: block; width: 100%; height: auto; }
+      .retina-cap { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; text-align: center; }
+
+      section.knowledge { margin-top: 22px; }
+      section.knowledge h2 {
+        font-family: "Noto Serif SC", serif; font-size: 22px; font-weight: 900; margin: 0 0 4px;
+      }
+      section.knowledge .lead { color: var(--muted); margin: 0 0 14px; font-size: 14.5px; }
+      .kgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+      .kcard { padding: 16px 18px; }
+      .kcard h3 { margin: 0 0 8px; font-size: 16.5px; }
+      .kcard p { margin: 0 0 8px; font-size: 14px; }
+      .kcard p:last-child { margin-bottom: 0; }
+      .kcard .tag {
+        display: inline-block; font-size: 12px; font-weight: 700; border-radius: 6px;
+        padding: 1px 8px; margin-bottom: 8px; background: var(--chip-bg); color: var(--accent);
+      }
+      table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; }
+      table.cmp th, table.cmp td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+      table.cmp thead th { color: var(--muted); font-weight: 500; font-size: 13px; border-bottom: 2px solid var(--line); }
+      table.cmp tbody th { font-weight: 700; white-space: nowrap; }
+      table.cmp tr:last-child th, table.cmp tr:last-child td { border-bottom: none; }
+      a.ext { color: var(--accent); font-weight: 500; }
+      footer { margin-top: 26px; color: var(--muted); font-size: 12.5px; text-align: center; }
+
+      /* ---------- SVG scene ---------- */
+      .axis-line { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 7 6; opacity: 0.65; }
+      .sclera { fill: var(--vitreous); stroke: var(--sclera-stroke); stroke-width: 2.4; }
+      .cornea { fill: rgba(150, 205, 230, 0.4); stroke: var(--lens-stroke); stroke-width: 1.8; }
+      .iris { fill: var(--iris); }
+      .pupil { fill: #0b0f13; }
+      .lens-body { fill: var(--lens-fill); stroke: var(--lens-stroke); stroke-width: 2; }
+      .lens-core { fill: rgba(255, 255, 255, 0.35); }
+      .ciliary { fill: #c98a4b; stroke: #9c6527; stroke-width: 1.2; }
+      @media (prefers-color-scheme: dark) { .ciliary { fill: #a5713a; stroke: #d29a58; } }
+      .zonule { stroke: #9c6527; stroke-width: 1.9; fill: none; opacity: 0.95; }
+      @media (prefers-color-scheme: dark) { .zonule { stroke: #d29a58; } }
+      .retina-arc { stroke: var(--retina); stroke-width: 6; fill: none; stroke-linecap: round; }
+      .retina-arc.focused { filter: drop-shadow(0 0 6px rgba(230, 110, 60, 0.85)); }
+      .ray { stroke: var(--ray); stroke-width: 2.2; fill: none; opacity: 0.92; }
+      .ray-post { stroke: var(--ray); stroke-width: 2; fill: none; opacity: 0.45; }
+      .ray-dash { stroke: var(--ray); stroke-width: 2; fill: none; opacity: 0.55; stroke-dasharray: 6 5; }
+      .svg-label { font-size: 14.5px; fill: var(--muted); font-weight: 500; }
+      .svg-label.small { font-size: 12.5px; }
+      .leader { stroke: var(--muted); stroke-width: 1; opacity: 0.6; }
+      .img-pt { fill: var(--amber); stroke: #fff; stroke-width: 1.2; }
+      .blur-spot { fill: #ffb020; opacity: 0.55; }
+      .glasses-lens { fill: rgba(150, 200, 225, 0.35); stroke: var(--lens-stroke); stroke-width: 2; }
+      .glasses-arm { stroke: var(--sclera-stroke); stroke-width: 3; stroke-linecap: round; }
+      .glasses-label { font-size: 13.5px; font-weight: 700; fill: var(--accent); }
+      .candle-hit { fill: transparent; cursor: grab; touch-action: none; }
+      .candle-hit:active { cursor: grabbing; }
+      .flame-outer { transform-origin: 0px -58px; animation: flick 1.5s ease-in-out infinite alternate; }
+      @keyframes flick {
+        from { transform: scaleY(1) skewX(-1.6deg); }
+        to { transform: scaleY(1.1) skewX(2.2deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .flame-outer { animation: none; }
+        .effort .fill { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="page-head">
+        <h1>人眼成像调节模拟</h1>
+        <p>眼睛的<strong>角膜和晶状体</strong>合起来相当于一个<strong>焦距可调的凸透镜</strong>，<strong>视网膜</strong>相当于光屏。晶状体到视网膜的距离（像距）始终不变，眼睛靠<strong>改变焦距</strong>把远近不同的物体都成像在视网膜上——这和照相机靠移动镜头改变像距正好相反。拖动蜡烛，或用下面的按钮试一试。</p>
+      </header>
+
+      <div class="layout">
+        <div class="card stage-card">
+          <svg id="scene" viewBox="0 0 1280 620" role="img" aria-label="人眼成像光路示意图：蜡烛发出的光线经晶状体折射后成像在视网膜上">
+            <defs>
+              <g id="candleShape">
+                <rect x="-15" y="-56" width="30" height="56" rx="3" fill="#f3ead8" stroke="#b09a72" stroke-width="1.6" />
+                <rect x="-15" y="-56" width="30" height="9" rx="3" fill="#d9c9a8" />
+                <line x1="0" y1="-56" x2="0" y2="-63" stroke="#5a4632" stroke-width="2.4" />
+                <g class="flame-outer">
+                  <path d="M 0 -86 C 7.5 -74 9 -66 0 -57 C -9 -66 -7.5 -74 0 -86 Z" fill="#f08c1e" />
+                  <path d="M 0 -76 C 4 -69 4.5 -64 0 -60 C -4.5 -64 -4 -69 0 -76 Z" fill="#ffd23e" />
+                </g>
+              </g>
+            </defs>
+
+            <line class="axis-line" x1="36" y1="310" x2="1246" y2="310" />
+
+            <!-- glasses (drawn first, behind rays start) -->
+            <g id="glassesG" style="display:none">
+              <line class="glasses-arm" id="glassesArm" x1="704" y1="218" x2="918" y2="158" />
+              <path class="glasses-lens" id="glassesPath" d="" />
+              <text class="glasses-label" id="glassesLabel" x="704" y="196" text-anchor="middle"></text>
+            </g>
+
+            <!-- eyeball -->
+            <ellipse class="sclera" id="eyeBall" cx="907" cy="310" rx="169" ry="170" />
+            <path class="retina-arc" id="retinaArc" d="" />
+            <ellipse class="cornea" id="corneaEl" cx="756" cy="310" rx="26" ry="92" />
+            <ellipse cx="742" cy="266" rx="7" ry="20" fill="rgba(255,255,255,0.55)" transform="rotate(-18 742 266)" />
+
+            <!-- rays -->
+            <g id="raysG"></g>
+
+            <!-- blur spot + image point -->
+            <ellipse class="blur-spot" id="blurSpot" cx="-50" cy="-50" rx="3.5" ry="3" />
+            <circle class="img-pt" id="imgPt" r="4.5" cx="-50" cy="-50" style="display:none" />
+            <text class="svg-label small" id="imgLabel" x="-50" y="-50" style="display:none">像</text>
+
+            <!-- iris / pupil -->
+            <rect class="iris" id="irisTop" x="856" y="202" width="17" height="76" rx="8" />
+            <rect class="iris" id="irisBot" x="856" y="342" width="17" height="76" rx="8" />
+            <rect class="pupil" id="pupilRect" x="858" y="278" width="13" height="64" rx="6" />
+
+            <!-- ciliary body + zonules + lens -->
+            <path class="zonule" id="zonTop" d="" />
+            <path class="zonule" id="zonBot" d="" />
+            <rect class="ciliary" id="cilTop" x="884" y="196" width="36" height="22" rx="9" />
+            <rect class="ciliary" id="cilBot" x="884" y="402" width="36" height="22" rx="9" />
+            <path class="lens-body" id="lensPath" d="" />
+            <ellipse class="lens-core" id="lensCore" cx="900" cy="310" rx="4" ry="52" />
+
+            <!-- focal point tick -->
+            <g id="fTick" style="display:none">
+              <line x1="0" y1="302" x2="0" y2="318" stroke="var(--muted)" stroke-width="1.6" id="fTickLine" />
+              <text class="svg-label small" id="fTickText" y="340" text-anchor="middle">焦点 F</text>
+            </g>
+
+            <!-- candle (object) -->
+            <g id="candleG">
+              <use href="#candleShape" />
+              <rect class="candle-hit" id="candleHit" x="-34" y="-102" width="68" height="112" />
+            </g>
+
+            <!-- labels -->
+            <text class="svg-label" id="objLabel" x="300" y="196" text-anchor="middle">物体（蜡烛）· 可拖动</text>
+            <text class="svg-label" x="668" y="182">角膜</text>
+            <line class="leader" x1="712" y1="190" x2="742" y2="238" />
+            <text class="svg-label" x="952" y="168">晶状体</text>
+            <line class="leader" x1="946" y1="176" x2="908" y2="238" />
+            <text class="svg-label" x="996" y="492">睫状肌</text>
+            <line class="leader" x1="986" y1="484" x2="922" y2="428" />
+            <text class="svg-label" id="retinaLabel" x="1066" y="182">视网膜</text>
+            <line class="leader" id="retinaLeader" x1="1060" y1="190" x2="1028" y2="252" />
+            <text class="svg-label small" id="vitreousLabel" x="966" y="430" text-anchor="middle" opacity="0.75">玻璃体</text>
+          </svg>
+          <p class="stage-note">示意图未按真实比例绘制：眼球内部结构放大约 6 倍，物距经压缩显示。光线画法与凸透镜成像实验相同：平行于主光轴的光线折射后过焦点、过光心的光线方向不变。</p>
+        </div>
+
+        <aside class="panel">
+          <div class="card sec">
+            <h2><span class="step">1</span>物体距离</h2>
+            <div class="slider-row">
+              <span class="val" id="uVal">6.0 m</span>
+              <span class="val"><small>物距 u</small></span>
+            </div>
+            <input type="range" id="uSlider" min="0" max="1000" value="1000" aria-label="物距" />
+            <div class="scale-marks"><span>10 cm（近）</span><span>25 cm</span><span>1 m</span><span>6 m（远）</span></div>
+            <div class="chips">
+              <button class="chip" data-u="600">看远山 · 6 m</button>
+              <button class="chip" data-u="100">看窗外 · 1 m</button>
+              <button class="chip" data-u="25">看书 · 25 cm</button>
+              <button class="chip" data-u="12">凑近看 · 12 cm</button>
+            </div>
+            <button class="toggle-btn demo-btn" id="demoBtn" aria-pressed="false">▶ 演示：物体由远到近</button>
+          </div>
+
+          <div class="card sec">
+            <h2><span class="step">2</span>眼睛的调节</h2>
+            <div class="seg" role="group" aria-label="调节方式">
+              <button id="modeAuto" aria-pressed="true">自动调焦（睫状肌调节）</button>
+              <button id="modeManual" aria-pressed="false">手动调焦</button>
+            </div>
+            <div id="fRow" style="display:none; margin-top:10px">
+              <div class="slider-row">
+                <span class="val" id="fVal">20.0</span>
+                <span class="val"><small>晶状体焦距 f（mm）——自己找到能看清的位置</small></span>
+              </div>
+              <input type="range" id="fSlider" min="16.7" max="20" step="0.05" value="20" aria-label="晶状体焦距" />
+              <div class="scale-marks"><span>16.7 mm（最厚）</span><span>20.0 mm（最薄）</span></div>
+            </div>
+            <p class="hint" id="modeHint">自动调焦时，睫状肌会像眼睛真实工作时那样，自动改变晶状体的厚薄。</p>
+          </div>
+
+          <div class="card sec">
+            <h2><span class="step">3</span>眼睛状态与矫正</h2>
+            <div class="seg" role="group" aria-label="眼睛状态">
+              <button data-eye="normal" aria-pressed="true">正常眼</button>
+              <button data-eye="myopia" aria-pressed="false">近视眼</button>
+              <button data-eye="hyperopia" aria-pressed="false">远视眼</button>
+              <button data-eye="presbyopia" aria-pressed="false">老花眼</button>
+            </div>
+            <p class="hint" id="eyeHint">眼轴长 20.0 mm，晶状体焦距可在 16.7–20.0 mm 间调节。</p>
+            <div style="margin-top:10px">
+              <button class="toggle-btn" id="glassesBtn" aria-pressed="false" disabled>佩戴矫正眼镜</button>
+            </div>
+          </div>
+
+          <div class="card sec">
+            <h2>成像情况</h2>
+            <div class="verdict ok" id="verdictBox">
+              <span class="dot" id="verdictDot"></span>
+              <div class="txt">
+                <span class="big" id="verdictText">清晰</span>
+                <span class="sub" id="verdictSub">像正落在视网膜上 · 倒立、缩小的实像</span>
+              </div>
+            </div>
+            <p class="explain" id="explainText"></p>
+            <div class="effort">
+              <div class="lab"><span>睫状肌状态</span><span id="effortText">舒张 · 晶状体较薄</span></div>
+              <div class="bar"><div class="fill" id="effortFill"></div></div>
+            </div>
+          </div>
+
+          <div class="card sec">
+            <h2>视网膜上的像</h2>
+            <div class="retina-view">
+              <svg viewBox="0 0 220 160" role="img" aria-label="视网膜上所成的像（倒立、缩小，模糊程度随成像情况变化）">
+                <defs>
+                  <filter id="rb" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur id="rbBlur" stdDeviation="0" />
+                  </filter>
+                </defs>
+                <path d="M 182 12 Q 126 80 182 148" stroke="#b3402a" stroke-width="7" fill="none" stroke-linecap="round" />
+                <line x1="14" y1="80" x2="206" y2="80" stroke="#3d4c5c" stroke-width="1" stroke-dasharray="5 5" />
+                <g id="retinaImg" filter="url(#rb)">
+                  <use href="#candleShape" />
+                </g>
+              </svg>
+            </div>
+            <p class="retina-cap" id="retinaCap">视网膜上成倒立、缩小的实像，大脑再把它“翻”正——这就是你“看清”时的画面。</p>
+          </div>
+
+          <div class="card sec">
+            <h2>数据与公式</h2>
+            <dl class="data">
+              <dt>物距 u</dt><dd id="dU">—</dd>
+              <dt>像距 v（眼轴长）</dt><dd id="dV">—</dd>
+              <dt>看清所需焦距</dt><dd id="dFreq">—</dd>
+              <dt>晶状体当前焦距</dt><dd id="dF">—</dd>
+              <dt>晶状体焦度</dt><dd id="dP">—</dd>
+              <dt>近点 / 远点</dt><dd id="dNearFar">—</dd>
+            </dl>
+            <div class="formula" id="formulaLine"></div>
+          </div>
+        </aside>
+      </div>
+
+      <section class="knowledge">
+        <h2>眼睛是怎样调焦的</h2>
+        <p class="lead">眼球的调节靠睫状肌：它改变晶状体的厚薄，也就改变了焦距。这与可变焦水透镜实验里注水、抽水改变透镜厚薄是同一个道理。</p>
+        <div class="kgrid">
+          <div class="card kcard">
+            <h3>看远与看近的对照</h3>
+            <table class="cmp">
+              <thead><tr><th></th><th>看远处</th><th>看近处</th></tr></thead>
+              <tbody>
+                <tr><th>睫状肌</th><td>舒张</td><td>收缩</td></tr>
+                <tr><th>悬韧带</th><td>拉紧</td><td>松弛</td></tr>
+                <tr><th>晶状体</th><td>变薄</td><td>变厚</td></tr>
+                <tr><th>焦距</th><td>变长</td><td>变短</td></tr>
+                <tr><th>折光能力</th><td>变弱</td><td>变强</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:10px">正常眼的远点是无穷远，近点约 10 cm；看书时最合适的距离约 25 cm，叫做明视距离。</p>
+          </div>
+          <div class="card kcard">
+            <span class="tag">近视眼</span>
+            <h3>像成在视网膜前方</h3>
+            <p>晶状体太厚（折光能力太强），或眼球前后径过长，远处物体的像成在视网膜<strong>前方</strong>，看不清远处。</p>
+            <p>矫正：戴<strong>凹透镜</strong>，先把光线发散一些，像就能后移到视网膜上。在模拟里选“近视眼”，再点“佩戴矫正眼镜”试试。</p>
+          </div>
+          <div class="card kcard">
+            <span class="tag">远视眼 · 老花眼</span>
+            <h3>像成在视网膜后方</h3>
+            <p>远视眼：晶状体太薄或眼球前后径过短，近处物体的像成在视网膜<strong>后方</strong>。老花眼：眼轴正常，但睫状肌调节能力减弱，晶状体变不到足够厚，近点变远。</p>
+            <p>矫正：戴<strong>凸透镜</strong>，先把光线会聚一些。注意老花镜只适合看近处——戴着它看远处反而会模糊，模拟里可以验证。</p>
+          </div>
+          <div class="card kcard">
+            <span class="tag">动手对照</span>
+            <h3>和水透镜实验对起来看</h3>
+            <p>向水透镜里注水，透镜变厚、焦距变短，相当于睫状肌收缩看近处；抽水则相当于看远处。光屏（视网膜）位置不动，全靠焦距变化——这正是眼睛和照相机调焦方式的根本区别。</p>
+            <p>参考视频：<a class="ext" href="https://b23.tv/5CVDuqf" target="_blank" rel="noopener">可变焦凸透镜（水透镜）模拟人眼成像（哔哩哔哩）</a></p>
+          </div>
+        </div>
+      </section>
+
+      <footer>模型为简化眼：角膜与晶状体合并为一个薄透镜，眼轴长约 20 mm，焦距调节范围对应焦度约 50–60 D。</footer>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+        var $ = function (id) { return document.getElementById(id); };
+
+        /* ---------------- model ---------------- */
+        var EYES = {
+          normal:     { name: "正常眼", v0: 20.0, fMin: 16.7, fMax: 20.0, glasses: null,
+                        hint: "眼轴长 20.0 mm，晶状体焦距可在 16.7–20.0 mm 间调节。" },
+          myopia:     { name: "近视眼", v0: 21.5, fMin: 16.7, fMax: 20.0, glasses: { p: -3.5, label: "凹透镜 −350 度" },
+                        hint: "眼球前后径过长：眼轴长 21.5 mm（视网膜后移了），晶状体调节范围不变。" },
+          hyperopia:  { name: "远视眼", v0: 17.0, fMin: 16.7, fMax: 20.0, glasses: { p: 3.0, label: "凸透镜 +300 度" },
+                        hint: "眼球前后径过短：眼轴长只有 17.0 mm（视网膜靠前了），晶状体调节范围不变。" },
+          presbyopia: { name: "老花眼", v0: 20.0, fMin: 19.0, fMax: 20.0, glasses: { p: 2.5, label: "凸透镜 +250 度" },
+                        hint: "眼轴长正常，但睫状肌调节力减弱：焦距只能在 19.0–20.0 mm 间小范围变化。" }
+        };
+
+        var XL = 900, CY = 310, S = 6.2;           // lens center x, axis y, eye scale px/mm
+        var state = {
+          eye: "normal",
+          u_cm: 600,
+          mode: "auto",          // 'auto' | 'manual'
+          fEye: 20.0,            // current (animated) lens focal length, mm
+          fManual: 20.0,
+          glassesOn: false,
+          demo: false,
+          demoT: 0
+        };
+
+        /* ---------------- dom ---------------- */
+        var uSlider = $("uSlider"), uVal = $("uVal"), fSlider = $("fSlider"), fVal = $("fVal");
+        var raysG = $("raysG"), lensPath = $("lensPath"), lensCore = $("lensCore");
+        var retinaArc = $("retinaArc"), eyeBall = $("eyeBall"), blurSpot = $("blurSpot");
+        var imgPt = $("imgPt"), imgLabel = $("imgLabel");
+        var zonTop = $("zonTop"), zonBot = $("zonBot"), cilTop = $("cilTop"), cilBot = $("cilBot");
+        var irisTop = $("irisTop"), irisBot = $("irisBot"), pupilRect = $("pupilRect");
+        var candleG = $("candleG"), objLabel = $("objLabel");
+        var glassesG = $("glassesG"), glassesPath = $("glassesPath"), glassesLabel = $("glassesLabel");
+        var fTick = $("fTick"), fTickLine = $("fTickLine"), fTickText = $("fTickText");
+        var retinaImg = $("retinaImg"), rbBlur = $("rbBlur"), retinaCap = $("retinaCap");
+        var retinaLabel = $("retinaLabel"), retinaLeader = $("retinaLeader"), vitreousLabel = $("vitreousLabel");
+
+        function eye() { return EYES[state.eye]; }
+        function glassesP() { return (state.glassesOn && eye().glasses) ? eye().glasses.p : 0; }
+
+        /* log mapping for object distance: u_cm in [10, 600] <-> t in [0,1] */
+        function uToT(u) { return Math.log(u / 10) / Math.log(60); }
+        function tToU(t) { return 10 * Math.pow(60, t); }
+        function uToPx(u) { return 165 + 545 * uToT(u); }   // px from lens
+        function fmtU(u) {
+          if (u >= 595) return "6.0 m";
+          if (u >= 100) return (u / 100).toFixed(2).replace(/0$/, "") + " m";
+          return Math.round(u) + " cm";
+        }
+        function fmt1(x) { return (Math.round(x * 10) / 10).toFixed(1); }
+
+        /* ---------------- controls ---------------- */
+        uSlider.addEventListener("input", function () {
+          stopDemo();
+          state.u_cm = tToU(uSlider.value / 1000);
+          syncChips();
+        });
+
+        var chips = Array.prototype.slice.call(document.querySelectorAll(".chip[data-u]"));
+        chips.forEach(function (c) {
+          c.addEventListener("click", function () {
+            stopDemo();
+            state.u_cm = parseFloat(c.getAttribute("data-u"));
+            uSlider.value = Math.round(uToT(state.u_cm) * 1000);
+            syncChips();
+          });
+        });
+        function syncChips() {
+          chips.forEach(function (c) {
+            c.setAttribute("aria-pressed", Math.abs(parseFloat(c.getAttribute("data-u")) - state.u_cm) < 0.6 ? "true" : "false");
+          });
+          uVal.textContent = fmtU(state.u_cm);
+        }
+
+        var modeAuto = $("modeAuto"), modeManual = $("modeManual"), fRow = $("fRow"), modeHint = $("modeHint");
+        function setMode(m) {
+          state.mode = m;
+          modeAuto.setAttribute("aria-pressed", m === "auto" ? "true" : "false");
+          modeManual.setAttribute("aria-pressed", m === "manual" ? "true" : "false");
+          fRow.style.display = m === "manual" ? "block" : "none";
+          modeHint.textContent = m === "auto"
+            ? "自动调焦时，睫状肌会像眼睛真实工作时那样，自动改变晶状体的厚薄。"
+            : "手动调焦：睫状肌听你的。拖动滑块改变焦距，观察像什么时候正好落在视网膜上。";
+          if (m === "manual") { state.fManual = state.fEye; fSlider.value = state.fEye; fVal.textContent = fmt1(state.fEye); }
+        }
+        modeAuto.addEventListener("click", function () { setMode("auto"); });
+        modeManual.addEventListener("click", function () { setMode("manual"); });
+        fSlider.addEventListener("input", function () {
+          state.fManual = parseFloat(fSlider.value);
+          fVal.textContent = fmt1(state.fManual);
+        });
+
+        var eyeBtns = Array.prototype.slice.call(document.querySelectorAll("[data-eye]"));
+        var glassesBtn = $("glassesBtn"), eyeHint = $("eyeHint");
+        eyeBtns.forEach(function (b) {
+          b.addEventListener("click", function () { setEye(b.getAttribute("data-eye")); });
+        });
+        function setEye(key) {
+          state.eye = key;
+          eyeBtns.forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-eye") === key ? "true" : "false"); });
+          eyeHint.textContent = eye().hint;
+          state.glassesOn = false;
+          glassesBtn.setAttribute("aria-pressed", "false");
+          glassesBtn.textContent = "佩戴矫正眼镜";
+          if (eye().glasses) {
+            glassesBtn.disabled = false;
+            glassesBtn.textContent = "佩戴矫正眼镜（" + eye().glasses.label + "）";
+          } else {
+            glassesBtn.disabled = true;
+            glassesBtn.textContent = "正常眼无需眼镜";
+          }
+          // clamp manual slider to this eye's range
+          fSlider.min = eye().fMin; fSlider.max = eye().fMax;
+          state.fManual = Math.min(Math.max(state.fManual, eye().fMin), eye().fMax);
+          fSlider.value = state.fManual; fVal.textContent = fmt1(state.fManual);
+          var sm = fRow.querySelectorAll(".scale-marks span");
+          if (sm.length === 2) { sm[0].textContent = fmt1(eye().fMin) + " mm（最厚）"; sm[1].textContent = fmt1(eye().fMax) + " mm（最薄）"; }
+        }
+        glassesBtn.addEventListener("click", function () {
+          state.glassesOn = !state.glassesOn;
+          glassesBtn.setAttribute("aria-pressed", state.glassesOn ? "true" : "false");
+          glassesBtn.textContent = state.glassesOn
+            ? "摘下眼镜（" + eye().glasses.label + "）"
+            : "佩戴矫正眼镜（" + eye().glasses.label + "）";
+        });
+
+        var demoBtn = $("demoBtn");
+        demoBtn.addEventListener("click", function () {
+          if (state.demo) { stopDemo(); return; }
+          state.demo = true; state.demoT = 0;
+          demoBtn.setAttribute("aria-pressed", "true");
+          demoBtn.textContent = "■ 停止演示";
+        });
+        function stopDemo() {
+          if (!state.demo) return;
+          state.demo = false;
+          demoBtn.setAttribute("aria-pressed", "false");
+          demoBtn.textContent = "▶ 演示：物体由远到近";
+        }
+
+        /* drag the candle */
+        var drag = null;
+        $("candleHit").addEventListener("pointerdown", function (ev) {
+          drag = { x: ev.clientX, ud: uToPx(state.u_cm) };
+          ev.target.setPointerCapture(ev.pointerId);
+          stopDemo();
+        });
+        $("candleHit").addEventListener("pointermove", function (ev) {
+          if (!drag) return;
+          var svg = $("scene");
+          var scale = svg.viewBox.baseVal.width / svg.getBoundingClientRect().width;
+          var ud = Math.min(710, Math.max(165, drag.ud - (ev.clientX - drag.x) * scale));
+          var t = (ud - 165) / 545;
+          state.u_cm = tToU(t);
+          uSlider.value = Math.round(t * 1000);
+          syncChips();
+        });
+        $("candleHit").addEventListener("pointerup", function () { drag = null; });
+        $("candleHit").addEventListener("pointercancel", function () { drag = null; });
+
+        /* ---------------- optics ---------------- */
+        function compute() {
+          var e = eye(), g = glassesP();
+          var u_mm = state.u_cm * 10;
+          var Pmin = 1000 / e.fMax + g, Pmax = 1000 / e.fMin + g;   // combined power range (D)
+          var Preq = 100 / state.u_cm + 1000 / e.v0;                // power needed for sharp focus
+          var Ptotal, Peye;
+          if (state.mode === "auto") {
+            Ptotal = Math.min(Math.max(Preq, Pmin), Pmax);
+          } else {
+            Ptotal = 1000 / state.fManual + g;
+          }
+          Peye = Ptotal - g;
+          var fEyeTarget = 1000 / Peye;
+          var fEff = 1000 / Ptotal;
+          var denom = 1 / fEff - 1 / u_mm;
+          var vImg = denom > 0 ? 1 / denom : Infinity;              // mm
+          var dD = Math.abs(Ptotal - Preq);                          // defocus in diopters
+          var effort = (Peye - 1000 / e.fMax) / (1000 / e.fMin - 1000 / e.fMax);
+          effort = Math.min(1, Math.max(0, effort));
+          return {
+            e: e, g: g, u_mm: u_mm, Preq: Preq, Ptotal: Ptotal, Peye: Peye,
+            fEyeTarget: fEyeTarget, fEff: fEff, fReq: 1000 / Preq,
+            vImg: vImg, dD: dD, effort: effort
+          };
+        }
+
+        function arcPath(cx, cy, r, a0, a1) {
+          var x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
+          var x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+          return "M " + x0.toFixed(1) + " " + y0.toFixed(1) + " A " + r + " " + r + " 0 0 1 " + x1.toFixed(1) + " " + y1.toFixed(1);
+        }
+
+        var lastInfo = null;
+        function render(now) {
+          var c = compute();
+          lastInfo = c;
+          var e = c.e;
+
+          /* animate lens focal length toward target (accommodation takes a moment) */
+          var target = state.mode === "auto" ? c.fEyeTarget : state.fManual;
+          state.fEye += (target - state.fEye) * 0.14;
+          if (Math.abs(target - state.fEye) < 0.005) state.fEye = target;
+          var fEyeNow = state.fEye;
+          var PeyeNow = 1000 / fEyeNow;
+          var PtotalNow = PeyeNow + c.g;
+          var fEffNow = 1000 / PtotalNow;
+          var denomNow = 1 / fEffNow - 1 / c.u_mm;
+          var vImgNow = denomNow > 0 ? 1 / denomNow : 400;
+          var effortNow = Math.min(1, Math.max(0, (PeyeNow - 1000 / e.fMax) / (1000 / e.fMin - 1000 / e.fMax)));
+          var dDnow = Math.abs(PtotalNow - c.Preq);
+
+          /* geometry */
+          var v0d = e.v0 * S, retinaX = XL + v0d;
+          var vImgD = Math.min(vImgNow * S, 460);
+          var ud = uToPx(state.u_cm);
+          var xo = XL - ud, yTop = CY - 84;
+          var yi = CY + 84 * (vImgD / ud);
+          var xi = XL + vImgD;
+
+          /* eyeball + retina */
+          var frontX = XL - 162, backX = retinaX + 52;
+          eyeBall.setAttribute("cx", ((frontX + backX) / 2).toFixed(1));
+          eyeBall.setAttribute("rx", ((backX - frontX) / 2).toFixed(1));
+          retinaArc.setAttribute("d", arcPath(XL, CY, v0d, -0.98, 0.98));
+          retinaLabel.setAttribute("x", backX + 14);
+          retinaLeader.setAttribute("x1", backX + 8);
+          retinaLeader.setAttribute("x2", retinaX + 4);
+          retinaLeader.setAttribute("y2", CY - 62);
+          vitreousLabel.setAttribute("x", retinaX - 58);
+
+          /* lens shape from current power */
+          var thick = 7 + (PeyeNow - 50) * 1.1;
+          thick = Math.max(6, Math.min(18, thick));
+          var H = 86;
+          lensPath.setAttribute("d",
+            "M " + XL + " " + (CY - H) +
+            " Q " + (XL + thick) + " " + CY + " " + XL + " " + (CY + H) +
+            " Q " + (XL - thick) + " " + CY + " " + XL + " " + (CY - H) + " Z");
+          lensCore.setAttribute("rx", Math.max(2.5, thick * 0.32));
+
+          /* ciliary body + zonules: contract -> move in, zonules slack */
+          var anchOff = 99 - effortNow * 13;
+          cilTop.setAttribute("y", CY - anchOff - 11);
+          cilBot.setAttribute("y", CY + anchOff - 11);
+          var sag = effortNow * 7;
+          zonTop.setAttribute("d",
+            "M " + (XL + 4) + " " + (CY - anchOff + 4) +
+            " Q " + (XL - 2) + " " + (CY - (anchOff + H) / 2 + sag) + " " + XL + " " + (CY - H + 3) +
+            " M " + (XL + 16) + " " + (CY - anchOff + 6) +
+            " Q " + (XL + 6) + " " + (CY - (anchOff + H) / 2 + sag) + " " + (XL + 2) + " " + (CY - H + 10));
+          zonBot.setAttribute("d",
+            "M " + (XL + 4) + " " + (CY + anchOff - 4) +
+            " Q " + (XL - 2) + " " + (CY + (anchOff + H) / 2 - sag) + " " + XL + " " + (CY + H - 3) +
+            " M " + (XL + 16) + " " + (CY + anchOff - 6) +
+            " Q " + (XL + 6) + " " + (CY + (anchOff + H) / 2 - sag) + " " + (XL + 2) + " " + (CY + H - 10));
+
+          /* pupil: near reflex narrows it slightly */
+          var pupilH = 64 - effortNow * 14;
+          pupilRect.setAttribute("y", CY - pupilH / 2);
+          pupilRect.setAttribute("height", pupilH);
+          irisTop.setAttribute("height", 110 - pupilH / 2);
+          irisBot.setAttribute("y", CY + pupilH / 2 - 2);
+          irisBot.setAttribute("height", 110 - pupilH / 2);
+
+          /* glasses */
+          if (c.g !== 0) {
+            glassesG.style.display = "";
+            var gx = XL - 196, gh = 92;
+            if (c.g < 0) { // concave: thin center
+              glassesPath.setAttribute("d",
+                "M " + gx + " " + (CY - gh) +
+                " Q " + (gx + 10) + " " + CY + " " + gx + " " + (CY + gh) +
+                " Q " + (gx - 10) + " " + CY + " " + gx + " " + (CY - gh) + " Z");
+            } else {       // convex: thick center
+              glassesPath.setAttribute("d",
+                "M " + gx + " " + (CY - gh) +
+                " Q " + (gx - 15) + " " + CY + " " + gx + " " + (CY + gh) +
+                " Q " + (gx + 15) + " " + CY + " " + gx + " " + (CY - gh) + " Z");
+            }
+            glassesLabel.textContent = e.glasses.label;
+          } else {
+            glassesG.style.display = "none";
+          }
+
+          /* candle + label */
+          candleG.setAttribute("transform", "translate(" + xo + " " + CY + ")");
+          objLabel.setAttribute("x", xo);
+
+          /* rays: three special rays from the flame tip */
+          var lensPts = [
+            { x: XL, y: yTop },        // parallel ray hits lens at object height
+            { x: XL, y: CY },          // chief ray through center
+            { x: XL, y: yi }           // emerges parallel at image height
+          ];
+          var html = "", yAtRetina = [];
+          for (var k = 0; k < 3; k++) {
+            var L = lensPts[k];
+            var tR = (retinaX - L.x) / (xi - L.x);
+            var yR = L.y + tR * (yi - L.y);
+            yAtRetina.push(yR);
+            html += '<path class="ray" d="M ' + xo + " " + yTop + " L " + L.x + " " + L.y.toFixed(1) + " L " + xi.toFixed(1) + " " + yi.toFixed(1) + '"/>';
+            if (tR < 1) {
+              html += '<path class="ray-dash" d="M ' + retinaX.toFixed(1) + " " + yR.toFixed(1) + " L " + xi.toFixed(1) + " " + yi.toFixed(1) + '"/>';
+            } else if (tR > 1) {
+              html += '<path class="ray-post" d="M ' + xi.toFixed(1) + " " + yi.toFixed(1) + " L " + retinaX.toFixed(1) + " " + yR.toFixed(1) + '"/>';
+            }
+          }
+          raysG.innerHTML = html;
+
+          /* blur spot on retina */
+          var yMin = Math.min.apply(null, yAtRetina), yMax = Math.max.apply(null, yAtRetina);
+          var spread = yMax - yMin, yMid = (yMin + yMax) / 2;
+          var focused = dDnow <= 0.3;
+          blurSpot.setAttribute("cx", retinaX - 1);
+          blurSpot.setAttribute("cy", yMid.toFixed(1));
+          blurSpot.setAttribute("ry", Math.max(2.5, spread / 2));
+          blurSpot.style.display = spread > 4 ? "" : "none";
+          retinaArc.setAttribute("class", focused ? "retina-arc focused" : "retina-arc");
+
+          /* image point marker + focal tick */
+          if (!focused && Math.abs(vImgNow - e.v0) > 0.4) {
+            imgPt.style.display = ""; imgLabel.style.display = "";
+            imgPt.setAttribute("cx", xi.toFixed(1)); imgPt.setAttribute("cy", yi.toFixed(1));
+            imgLabel.setAttribute("x", (xi + 4).toFixed(1));
+            imgLabel.setAttribute("y", (yi - 16).toFixed(1));
+            imgLabel.setAttribute("text-anchor", "middle");
+          } else {
+            imgPt.style.display = "none"; imgLabel.style.display = "none";
+          }
+          var tF = (CY - yTop) / (yi - yTop);
+          var xF = XL + tF * vImgD;
+          if (xF > XL + 30 && xF < retinaX + 130) {
+            fTick.style.display = "";
+            fTickLine.setAttribute("x1", xF); fTickLine.setAttribute("x2", xF);
+            fTickText.setAttribute("x", xF);
+          } else { fTick.style.display = "none"; }
+
+          /* retinal preview: inverted candle, size by magnification, blur by defocus */
+          var mD = vImgD / ud;
+          var hPrev = Math.max(9, Math.min(100, 84 * mD * 2.1));
+          var sc = hPrev / 84;
+          retinaImg.setAttribute("transform", "translate(86 80) scale(" + sc.toFixed(3) + " " + (-sc).toFixed(3) + ")");
+          rbBlur.setAttribute("stdDeviation", Math.min(7, dDnow * 2.4).toFixed(2));
+
+          updatePanel(c, fEyeNow, PtotalNow, dDnow, vImgNow, effortNow, focused);
+        }
+
+        function frac(a, b) {
+          return '<span class="frac"><span>' + a + '</span><span>' + b + '</span></span>';
+        }
+
+        function updatePanel(c, fEyeNow, PtotalNow, dDnow, vImgNow, effortNow, focused) {
+          var e = c.e, g = c.g;
+          var posTxt, cls;
+          if (focused) { cls = "ok"; posTxt = "像正落在视网膜上"; }
+          else if (dDnow <= 1.2) { cls = "mid"; posTxt = vImgNow < e.v0 ? "像在视网膜前方一点" : "像在视网膜后方一点"; }
+          else { cls = "bad"; posTxt = vImgNow < e.v0 ? "像落在视网膜前方" : "像落在视网膜后方"; }
+
+          var vBox = $("verdictBox");
+          vBox.className = "verdict " + cls;
+          $("verdictDot").style.background = cls === "ok" ? "var(--good)" : cls === "mid" ? "var(--mid)" : "var(--bad)";
+          $("verdictText").textContent = focused ? "清晰" : dDnow <= 1.2 ? "基本清晰" : "模糊";
+          $("verdictSub").textContent = posTxt + " · 倒立、缩小的实像";
+
+          /* explanation */
+          var ex;
+          var near = state.u_cm <= 40;
+          if (focused) {
+            if (effortNow > 0.62) ex = "看近处：睫状肌收缩，悬韧带松弛，晶状体靠自身弹性变厚，焦距变短、折光能力变强，像正落在视网膜上。";
+            else if (effortNow < 0.3) ex = "看远处：睫状肌舒张，悬韧带拉紧，把晶状体拉得较薄，焦距较长，像正落在视网膜上，眼睛处于放松状态。";
+            else ex = "睫状肌恰到好处地调节，晶状体厚薄适中，像正落在视网膜上。";
+            if (g !== 0) ex += "（眼镜先把光线" + (g < 0 ? "发散" : "会聚") + "，再由晶状体成像。）";
+          } else if (vImgNow < e.v0) {
+            ex = "光线在到达视网膜之前就已经会聚成像，落到视网膜上的是一个模糊的光斑。";
+            if (state.eye === "myopia") ex += "近视眼的眼轴过长：晶状体放到最薄（焦距最长）也拉不回这个像。";
+            else if (g < 0) ex += "戴着近视镜（凹透镜）看这么近，矫正过头了。";
+            else ex += "晶状体已经放到最薄，折光能力仍嫌太强。";
+          } else {
+            ex = "光线到达视网膜时还没会聚成像，像落在了视网膜后方，视网膜上是模糊的光斑。";
+            if (state.eye === "hyperopia") ex += "远视眼眼轴过短：晶状体变到最厚也补不回来。";
+            else if (state.eye === "presbyopia") ex += "老花眼的调节力不够：晶状体变不到足够厚，近点比年轻时远多了。";
+            else if (g > 0) ex += "这副凸透镜眼镜是看近处用的，拿来看东西并不合适。";
+            else ex += near ? "晶状体已经变到最厚，焦距仍不够短。" : "晶状体折光能力不足。";
+          }
+          if (state.mode === "manual" && !focused) ex += "手动模式下，拖动焦距滑块可以自己把像调到视网膜上。";
+          $("explainText").textContent = ex;
+
+          /* effort meter */
+          $("effortFill").style.width = (effortNow * 100).toFixed(0) + "%";
+          $("effortText").textContent =
+            effortNow > 0.62 ? "收缩 · 晶状体较厚" :
+            effortNow < 0.3 ? "舒张 · 晶状体较薄" : "部分收缩 · 晶状体适中";
+
+          /* data */
+          $("dU").innerHTML = "<b>" + fmtU(state.u_cm) + "</b>（" + Math.round(state.u_cm * 10) + " mm）";
+          $("dV").innerHTML = "<b>" + fmt1(e.v0) + " mm</b>（固定不变）";
+          $("dFreq").innerHTML = "<b>" + fmt1(c.fReq) + " mm</b>";
+          $("dF").innerHTML = "<b>" + fmt1(fEyeNow) + " mm</b>" + (g !== 0 ? "（加眼镜后等效 " + fmt1(1000 / PtotalNow) + " mm）" : "");
+          $("dP").innerHTML = "<b>" + fmt1(PtotalNow) + " D</b>" + (g !== 0 ? "（含眼镜 " + (g > 0 ? "+" : "") + fmt1(g) + " D）" : "");
+
+          var PminC = 1000 / e.fMax + g, PmaxC = 1000 / e.fMin + g;
+          var base = 1000 / e.v0;
+          var nearTxt, farTxt;
+          var dn = PmaxC - base, df = PminC - base;
+          nearTxt = dn > 0.01 ? fmt1(100 / dn) + " cm" : "—";
+          farTxt = df <= 0.01 ? "无穷远" : fmt1(100 / df) + " cm";
+          $("dNearFar").innerHTML = "近点 <b>" + nearTxt + "</b> · 远点 <b>" + farTxt + "</b>";
+
+          $("formulaLine").innerHTML =
+            frac(1, "f") + " ＝ " + frac(1, "u") + " ＋ " + frac(1, "v") +
+            " → " + frac(1, fmt1(c.fReq)) + " ＝ " + frac(1, Math.round(state.u_cm * 10)) + " ＋ " + frac(1, fmt1(e.v0)) +
+            ' <span class="unit">（长度单位：mm）</span>';
+
+          retinaCap.textContent = focused
+            ? "视网膜上成倒立、缩小的实像，大脑再把它“翻”正——这就是你“看清”时的画面。"
+            : "像没有落在视网膜上，视网膜接收到的是弥散的光斑——这就是“看不清”时的画面。";
+        }
+
+        /* ---------------- main loop ---------------- */
+        var lastT = 0;
+        function loop(ts) {
+          if (state.demo) {
+            state.demoT += 1 / 60;
+            var T = state.demoT % 9;               // 9 s cycle
+            var t;
+            if (T < 3.6) t = 1 - easeInOut(T / 3.6);            // far -> near
+            else if (T < 4.6) t = 0;                            // hold near
+            else if (T < 8.2) t = easeInOut((T - 4.6) / 3.6);   // near -> far
+            else t = 1;                                         // hold far
+            state.u_cm = tToU(t);
+            uSlider.value = Math.round(t * 1000);
+            syncChips();
+          }
+          render(ts);
+          requestAnimationFrame(loop);
+        }
+        function easeInOut(x) { return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; }
+
+        setEye("normal");
+        setMode("auto");
+        syncChips();
+        requestAnimationFrame(loop);
+      })();
+    </script>
+  </body>
+</html>
