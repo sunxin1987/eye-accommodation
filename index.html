@@ -6,6 +6,9 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
     <title>人眼成像调节模拟</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@700;900&display=swap" rel="stylesheet" />
     <style>
       button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
 
@@ -27,6 +30,8 @@
         --sclera-stroke: #33424f;
         --lens-fill: rgba(140, 205, 225, 0.5);
         --lens-stroke: #3d7f96;
+        --cornea-fill: rgba(165, 215, 238, 0.13);
+        --cornea-stroke: rgba(90, 150, 185, 0.55);
         --retina: #b3402a;
         --iris: #4a3421;
         --stage-bg: #fbfcfd;
@@ -52,6 +57,8 @@
           --sclera-stroke: #8fa9bc;
           --lens-fill: rgba(110, 180, 205, 0.35);
           --lens-stroke: #7cc0d6;
+          --cornea-fill: rgba(150, 205, 235, 0.10);
+          --cornea-stroke: rgba(140, 195, 225, 0.5);
           --retina: #e0684e;
           --iris: #a97c50;
           --stage-bg: #101922;
@@ -81,6 +88,13 @@
       }
       header.page-head p { margin: 0; color: var(--muted); font-size: 15px; max-width: 46em; }
       header.page-head p strong { color: var(--ink); }
+      .offline-btn {
+        margin-top: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+        border-radius: 10px; padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+        min-height: 40px;
+      }
+      .offline-btn:hover { filter: brightness(1.08); }
+      .offline-note { color: var(--muted); font-size: 12.5px; margin-left: 10px; }
 
       .layout { display: grid; grid-template-columns: minmax(0, 1fr) 348px; gap: 16px; align-items: start; }
       @media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
@@ -202,7 +216,8 @@
       /* ---------- SVG scene ---------- */
       .axis-line { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 7 6; opacity: 0.65; }
       .sclera { fill: var(--vitreous); stroke: var(--sclera-stroke); stroke-width: 2.4; }
-      .cornea { fill: rgba(150, 205, 230, 0.4); stroke: var(--lens-stroke); stroke-width: 1.8; }
+      .cornea { fill: var(--cornea-fill); stroke: var(--cornea-stroke); stroke-width: 1.3; }
+      .cornea-rim { fill: none; stroke: var(--cornea-stroke); stroke-width: 1; opacity: 0.45; }
       .iris { fill: var(--iris); }
       .pupil { fill: #0b0f13; }
       .lens-body { fill: var(--lens-fill); stroke: var(--lens-stroke); stroke-width: 2; }
@@ -242,6 +257,7 @@
       <header class="page-head">
         <h1>人眼成像调节模拟</h1>
         <p>眼睛的<strong>角膜和晶状体</strong>合起来相当于一个<strong>焦距可调的凸透镜</strong>，<strong>视网膜</strong>相当于光屏。晶状体到视网膜的距离（像距）始终不变，眼睛靠<strong>改变焦距</strong>把远近不同的物体都成像在视网膜上——这和照相机靠移动镜头改变像距正好相反。拖动蜡烛，或用下面的按钮试一试。</p>
+        <button class="offline-btn" id="offlineBtn" type="button">↓ 下载离线版</button><span class="offline-note">单个 HTML 文件，保存到电脑或手机后断网也能打开使用</span>
       </header>
 
       <div class="layout">
@@ -271,8 +287,9 @@
             <!-- eyeball -->
             <ellipse class="sclera" id="eyeBall" cx="907" cy="310" rx="169" ry="170" />
             <path class="retina-arc" id="retinaArc" d="" />
+            <ellipse class="cornea-rim" cx="754" cy="310" rx="30" ry="96" />
             <ellipse class="cornea" id="corneaEl" cx="756" cy="310" rx="26" ry="92" />
-            <ellipse cx="742" cy="266" rx="7" ry="20" fill="rgba(255,255,255,0.55)" transform="rotate(-18 742 266)" />
+            <ellipse cx="742" cy="266" rx="7" ry="20" fill="rgba(255,255,255,0.4)" transform="rotate(-18 742 266)" />
 
             <!-- rays -->
             <g id="raysG"></g>
@@ -309,7 +326,7 @@
 
             <!-- labels -->
             <text class="svg-label" id="objLabel" x="300" y="196" text-anchor="middle">物体（蜡烛）· 可拖动</text>
-            <text class="svg-label" x="668" y="182">角膜</text>
+            <text class="svg-label" x="600" y="182">角膜（透光薄膜）</text>
             <line class="leader" x1="712" y1="190" x2="742" y2="238" />
             <text class="svg-label" x="952" y="168">晶状体</text>
             <line class="leader" x1="946" y1="176" x2="908" y2="238" />
@@ -319,7 +336,7 @@
             <line class="leader" id="retinaLeader" x1="1060" y1="190" x2="1028" y2="252" />
             <text class="svg-label small" id="vitreousLabel" x="966" y="430" text-anchor="middle" opacity="0.75">玻璃体</text>
           </svg>
-          <p class="stage-note">示意图未按真实比例绘制：眼球内部结构放大约 6 倍，物距经压缩显示。光线画法与凸透镜成像实验相同：平行于主光轴的光线折射后过焦点、过光心的光线方向不变。</p>
+          <p class="stage-note">示意图未按真实比例绘制：眼球内部结构放大约 6 倍，物距经压缩显示。光线画法与凸透镜成像实验相同：平行于主光轴的光线折射后过焦点、过光心的光线方向不变；光线上的箭头表示光的传播方向。</p>
         </div>
 
         <aside class="panel">
@@ -655,6 +672,24 @@
           };
         }
 
+        /* arrowhead polygon centred at fraction t along a segment, pointing along it */
+        function arrowAt(x1, y1, x2, y2, t, op) {
+          var dx = x2 - x1, dy = y2 - y1;
+          var len = Math.sqrt(dx * dx + dy * dy);
+          if (len < 26) return "";
+          var ux = dx / len, uy = dy / len;
+          var px = x1 + dx * t, py = y1 + dy * t;
+          var L = 13, W = 4.8;
+          var tipX = px + ux * L / 2, tipY = py + uy * L / 2;
+          var bX = px - ux * L / 2, bY = py - uy * L / 2;
+          var nx = -uy, ny = ux;
+          return '<polygon points="' +
+            tipX.toFixed(1) + "," + tipY.toFixed(1) + " " +
+            (bX + nx * W).toFixed(1) + "," + (bY + ny * W).toFixed(1) + " " +
+            (bX - nx * W).toFixed(1) + "," + (bY - ny * W).toFixed(1) +
+            '" fill="var(--ray)" opacity="' + op + '"/>';
+        }
+
         function arcPath(cx, cy, r, a0, a1) {
           var x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
           var x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
@@ -770,10 +805,14 @@
             var yR = L.y + tR * (yi - L.y);
             yAtRetina.push(yR);
             html += '<path class="ray" d="M ' + xo + " " + yTop + " L " + L.x + " " + L.y.toFixed(1) + " L " + xi.toFixed(1) + " " + yi.toFixed(1) + '"/>';
+            html += arrowAt(xo, yTop, L.x, L.y, 0.5, 0.95);
+            html += arrowAt(L.x, L.y, xi, yi, 0.42, 0.95);
             if (tR < 1) {
               html += '<path class="ray-dash" d="M ' + retinaX.toFixed(1) + " " + yR.toFixed(1) + " L " + xi.toFixed(1) + " " + yi.toFixed(1) + '"/>';
+              html += arrowAt(retinaX, yR, xi, yi, 0.5, 0.55);
             } else if (tR > 1) {
               html += '<path class="ray-post" d="M ' + xi.toFixed(1) + " " + yi.toFixed(1) + " L " + retinaX.toFixed(1) + " " + yR.toFixed(1) + '"/>';
+              html += arrowAt(xi, yi, retinaX, yR, 0.5, 0.5);
             }
           }
           raysG.innerHTML = html;
@@ -886,6 +925,20 @@
             ? "视网膜上成倒立、缩小的实像，大脑再把它“翻”正——这就是你“看清”时的画面。"
             : "像没有落在视网膜上，视网膜接收到的是弥散的光斑——这就是“看不清”时的画面。";
         }
+
+        /* offline copy: download this page itself as one self-contained file */
+        $("offlineBtn").addEventListener("click", function () {
+          var html = "<!doctype html>\n" + document.documentElement.outerHTML;
+          var blob = new Blob([html], { type: "text/html;charset=utf-8" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "人眼成像调节模拟（离线版）.html";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        });
 
         /* ---------------- main loop ---------------- */
         var lastT = 0;
