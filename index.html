@@ -30,8 +30,6 @@
         --sclera-stroke: #33424f;
         --lens-fill: rgba(140, 205, 225, 0.5);
         --lens-stroke: #3d7f96;
-        --cornea-fill: rgba(165, 215, 238, 0.13);
-        --cornea-stroke: rgba(90, 150, 185, 0.55);
         --retina: #b3402a;
         --iris: #4a3421;
         --stage-bg: #fbfcfd;
@@ -57,8 +55,6 @@
           --sclera-stroke: #8fa9bc;
           --lens-fill: rgba(110, 180, 205, 0.35);
           --lens-stroke: #7cc0d6;
-          --cornea-fill: rgba(150, 205, 235, 0.10);
-          --cornea-stroke: rgba(140, 195, 225, 0.5);
           --retina: #e0684e;
           --iris: #a97c50;
           --stage-bg: #101922;
@@ -216,8 +212,6 @@
       /* ---------- SVG scene ---------- */
       .axis-line { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 7 6; opacity: 0.65; }
       .sclera { fill: var(--vitreous); stroke: var(--sclera-stroke); stroke-width: 2.4; }
-      .cornea { fill: var(--cornea-fill); stroke: var(--cornea-stroke); stroke-width: 1.3; }
-      .cornea-rim { fill: none; stroke: var(--cornea-stroke); stroke-width: 1; opacity: 0.45; }
       .iris { fill: var(--iris); }
       .pupil { fill: #0b0f13; }
       .lens-body { fill: var(--lens-fill); stroke: var(--lens-stroke); stroke-width: 2; }
@@ -287,9 +281,6 @@
             <!-- eyeball -->
             <ellipse class="sclera" id="eyeBall" cx="907" cy="310" rx="169" ry="170" />
             <path class="retina-arc" id="retinaArc" d="" />
-            <ellipse class="cornea-rim" cx="754" cy="310" rx="30" ry="96" />
-            <ellipse class="cornea" id="corneaEl" cx="756" cy="310" rx="26" ry="92" />
-            <ellipse cx="742" cy="266" rx="7" ry="20" fill="rgba(255,255,255,0.4)" transform="rotate(-18 742 266)" />
 
             <!-- rays -->
             <g id="raysG"></g>
@@ -326,8 +317,6 @@
 
             <!-- labels -->
             <text class="svg-label" id="objLabel" x="300" y="196" text-anchor="middle">物体（蜡烛）· 可拖动</text>
-            <text class="svg-label" x="600" y="182">角膜（透光薄膜）</text>
-            <line class="leader" x1="712" y1="190" x2="742" y2="238" />
             <text class="svg-label" x="952" y="168">晶状体</text>
             <line class="leader" x1="946" y1="176" x2="908" y2="238" />
             <text class="svg-label" x="996" y="492">睫状肌</text>
